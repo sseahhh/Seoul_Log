@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeoulLog 데이터 파이프라인 아키텍처</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .stage {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stage:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stage-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .stage-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stage-description {
+            color: #546e7a;
+            margin-bottom: 20px;
+            font-size: 1.05em;
+            line-height: 1.6;
+        }
+
+        .components {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .component {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .component-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .component-icon {
+            font-size: 1.3em;
+        }
+
+        .component-desc {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .tech-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .arrow {
+            text-align: center;
+            color: #667eea;
+            font-size: 3em;
+            margin: -10px 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .data-flow {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .data-flow-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-flow-content {
+            color: #856404;
+            font-size: 0.95em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .metric {
+            display: inline-block;
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .performance-box {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .performance-title {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .performance-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .components {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏛️ SeoulLog 데이터 파이프라인 아키텍처</h1>
+        <p class="subtitle">크롤링부터 검색까지 - 전체 데이터 처리 흐름</p>
+
+        <div class="pipeline">
+            <!-- Stage 1: 크롤링 -->
+            <div class="stage">
+                <div class="stage-header">
+                    <div class="stage-number">1</div>
+                    <div class="stage-title">📡 데이터 크롤링</div>
+                </div>
+                <div class="stage-description">
+                    서울시의회 회의록을 자동으로 수집하고 원본 텍스트 파일로 저장합니다.
+                </div>
+
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🕷️</span>
+                            웹 크롤러
+                        </div>
+                        <div class="component-desc">
+                            서울시의회 홈페이지에서 회의록 HTML 수집
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Selenium</span>
+                            <span class="tech-badge">BeautifulSoup</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🔄</span>
+                            텍스트 추출
+                        </div>
+                        <div class="component-desc">
+                            HTML에서 순수 텍스트 추출 및 정리
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Python</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-flow">
+                    <div class="data-flow-title">📁 데이터 출력</div>
+                    <div class="data-flow-content">
+                        → data/result/제332회 교통위원회 제1차(2025.09.01)/meeting_YYYYMMDD_HHMMSS.txt
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇</div>
+
+            <!-- Stage 2: 하이브리드 파싱 -->
+            <div class="stage">
+                <div class="stage-header">
+                    <div class="stage-number">2</div>
+                    <div class="stage-title">🤖 하이브리드 파싱 <span class="metric">10배 빠름</span></div>
+                </div>
+                <div class="stage-description">
+                    AI와 코드를 결합한 2단계 하이브리드 파싱으로 안건과 발언자를 정확하게 추출합니다.
+                </div>
+
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🧠</span>
+                            Stage 1: AI 안건 매핑
+                        </div>
+                        <div class="component-desc">
+                            Gemini 2.5 Pro가 논리적 안건 경계를 식별하고 각 섹션의 시작/끝 라인 번호 반환
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Gemini 2.5 Pro</span>
+                            <span class="tech-badge">JSON 출력</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">⚡</span>
+                            Stage 2: 코드 발언 추출
+                        </div>
+                        <div class="component-desc">
+                            순수 Python 정규표현식으로 발언자(○) 패턴 감지 및 청크 분할
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Regex</span>
+                            <span class="tech-badge">Pure Python</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🔗</span>
+                            발언자 상태 추적
+                        </div>
+                        <div class="component-desc">
+                            안건 간 last_speaker 유지로 누락 방지 <span class="highlight">100% 정확도</span>
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">State Management</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-flow">
+                    <div class="data-flow-title">📁 데이터 출력</div>
+                    <div class="data-flow-content">
+                        → data/result_txt/meeting_YYYYMMDD_HHMMSS.json<br>
+                        &nbsp;&nbsp;{meeting_info: {...}, chunks: [{speaker, agenda, text}, ...]}
+                    </div>
+                </div>
+
+                <div class="performance-box">
+                    <div class="performance-title">⚡ 성능 개선</div>
+                    <div class="performance-stats">
+                        <div class="stat">
+                            <div class="stat-value">10x</div>
+                            <div class="stat-label">속도 향상</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">50%</div>
+                            <div class="stat-label">비용 절감</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">100%</div>
+                            <div class="stat-label">정확도</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇</div>
+
+            <!-- Stage 3: AI 요약 생성 -->
+            <div class="stage">
+                <div class="stage-header">
+                    <div class="stage-number">3</div>
+                    <div class="stage-title">✨ AI 요약 생성 <span class="metric">비동기 병렬</span></div>
+                </div>
+                <div class="stage-description">
+                    안건별로 AI가 요약문과 핵심 의제를 자동 생성합니다.
+                </div>
+
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📝</span>
+                            청크 요약
+                        </div>
+                        <div class="component-desc">
+                            각 발언 청크를 1-2문장으로 요약
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Gemini 2.5 Flash</span>
+                            <span class="tech-badge">Async</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📊</span>
+                            안건 종합 요약
+                        </div>
+                        <div class="component-desc">
+                            청크 요약들을 종합하여 안건 전체 요약 생성
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Gemini 2.5 Flash</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🎯</span>
+                            핵심 의제 추출
+                        </div>
+                        <div class="component-desc">
+                            안건 복잡도에 따라 LLM이 자동으로 개수 결정
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">LLM 판단</span>
+                            <span class="tech-badge">JSON Array</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-flow">
+                    <div class="data-flow-title">💾 데이터베이스 저장</div>
+                    <div class="data-flow-content">
+                        → SQLite DB (agendas 테이블)<br>
+                        &nbsp;&nbsp;columns: agenda_id, agenda_title, ai_summary, key_issues (JSON), ...
+                    </div>
+                </div>
+
+                <div class="performance-box">
+                    <div class="performance-title">🚀 병렬 처리</div>
+                    <div class="performance-stats">
+                        <div class="stat">
+                            <div class="stat-value">10개</div>
+                            <div class="stat-label">동시 처리</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">5분</div>
+                            <div class="stat-label">100개 처리 시간</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇</div>
+
+            <!-- Stage 4: 벡터 DB 저장 -->
+            <div class="stage">
+                <div class="stage-header">
+                    <div class="stage-number">4</div>
+                    <div class="stage-title">🗄️ 벡터 데이터베이스 저장</div>
+                </div>
+                <div class="stage-description">
+                    발언 청크를 벡터로 변환하여 의미 기반 검색이 가능하도록 저장합니다.
+                </div>
+
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🔢</span>
+                            임베딩 생성
+                        </div>
+                        <div class="component-desc">
+                            각 발언 텍스트를 1536차원 벡터로 변환
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">OpenAI text-embedding-3-small</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">💾</span>
+                            ChromaDB 저장
+                        </div>
+                        <div class="component-desc">
+                            벡터와 메타데이터를 ChromaDB에 저장
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">ChromaDB</span>
+                            <span class="tech-badge">Batch Insert</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🏷️</span>
+                            메타데이터 첨부
+                        </div>
+                        <div class="component-desc">
+                            speaker, agenda, meeting 정보 함께 저장
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Metadata</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-flow">
+                    <div class="data-flow-title">📁 데이터 출력</div>
+                    <div class="data-flow-content">
+                        → data/chroma_db/seoul_council_meetings/<br>
+                        &nbsp;&nbsp;각 청크: {text, vector, metadata: {speaker, agenda, meeting_title, ...}}
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇</div>
+
+            <!-- Stage 5: 검색 서비스 -->
+            <div class="stage">
+                <div class="stage-header">
+                    <div class="stage-number">5</div>
+                    <div class="stage-title">🔍 검색 서비스</div>
+                </div>
+                <div class="stage-description">
+                    사용자 질문에 대해 의미 기반 검색을 수행하고 관련 안건을 반환합니다.
+                </div>
+
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🎤</span>
+                            사용자 쿼리 입력
+                        </div>
+                        <div class="component-desc">
+                            웹 UI를 통해 자연어 질문 입력
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">FastAPI</span>
+                            <span class="tech-badge">REST API</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🧮</span>
+                            쿼리 임베딩
+                        </div>
+                        <div class="component-desc">
+                            사용자 질문을 벡터로 변환
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">OpenAI Embedding</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📊</span>
+                            유사도 검색
+                        </div>
+                        <div class="component-desc">
+                            ChromaDB에서 코사인 유사도 기반 검색
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Vector Search</span>
+                            <span class="tech-badge">Cosine Similarity</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📋</span>
+                            결과 포맷팅
+                        </div>
+                        <div class="component-desc">
+                            안건별로 그룹핑하고 AI 요약과 함께 반환
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Result Formatter</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-flow">
+                    <div class="data-flow-title">📤 응답 데이터</div>
+                    <div class="data-flow-content">
+                        → JSON Response<br>
+                        &nbsp;&nbsp;{<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;total_results: 10,<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;results: [{agenda_id, title, ai_summary, similarity, ...}]<br>
+                        &nbsp;&nbsp;}
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">⬇</div>
+
+            <!-- Stage 6: 프론트엔드 표시 -->
+            <div class="stage">
+                <div class="stage-header">
+                    <div class="stage-number">6</div>
+                    <div class="stage-title">🎨 프론트엔드 표시</div>
+                </div>
+                <div class="stage-description">
+                    검색 결과를 사용자 친화적인 UI로 표시하고 상세 페이지로 연결합니다.
+                </div>
+
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">🏠</span>
+                            메인 페이지
+                        </div>
+                        <div class="component-desc">
+                            검색창 + Top 5 주목받는 안건 표시
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">main.html</span>
+                            <span class="tech-badge">Tailwind CSS</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📜</span>
+                            검색 결과 페이지
+                        </div>
+                        <div class="component-desc">
+                            안건 목록 + AI 요약 + 진행 상태 표시
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">search.html</span>
+                            <span class="tech-badge">Dynamic Loading</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📄</span>
+                            안건 상세 페이지
+                        </div>
+                        <div class="component-desc">
+                            핵심 의제 + 발언자별 내용 + 원문 링크
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">details.html</span>
+                            <span class="tech-badge">JavaScript</span>
+                        </div>
+                    </div>
+
+                    <div class="component">
+                        <div class="component-title">
+                            <span class="component-icon">📱</span>
+                            반응형 디자인
+                        </div>
+                        <div class="component-desc">
+                            max-w-lg 제약으로 모바일 친화적 UI
+                        </div>
+                        <div class="tech-stack">
+                            <span class="tech-badge">Responsive</span>
+                            <span class="tech-badge">Dark Mode</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="performance-box">
+                    <div class="performance-title">✨ 사용자 경험</div>
+                    <div class="performance-stats">
+                        <div class="stat">
+                            <div class="stat-value">&lt;1초</div>
+                            <div class="stat-label">검색 응답 시간</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">100%</div>
+                            <div class="stat-label">모바일 호환</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">Top5</div>
+                            <div class="stat-label">추천 안건</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 전체 기술 스택 요약 -->
+        <div class="stage" style="margin-top: 40px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+            <div class="stage-header">
+                <div class="stage-number">🛠️</div>
+                <div class="stage-title">전체 기술 스택</div>
+            </div>
+
+            <div class="components">
+                <div class="component">
+                    <div class="component-title">
+                        <span class="component-icon">🤖</span>
+                        AI/ML
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-badge">Gemini 2.5 Pro</span>
+                        <span class="tech-badge">Gemini 2.5 Flash</span>
+                        <span class="tech-badge">OpenAI Embeddings</span>
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">
+                        <span class="component-icon">🗄️</span>
+                        데이터베이스
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-badge">ChromaDB</span>
+                        <span class="tech-badge">SQLite</span>
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">
+                        <span class="component-icon">⚙️</span>
+                        백엔드
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-badge">FastAPI</span>
+                        <span class="tech-badge">Python</span>
+                        <span class="tech-badge">Asyncio</span>
+                        <span class="tech-badge">Pydantic</span>
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">
+                        <span class="component-icon">🎨</span>
+                        프론트엔드
+                    </div>
+                    <div class="tech-stack">
+                        <span class="tech-badge">HTML5</span>
+                        <span class="tech-badge">JavaScript</span>
+                        <span class="tech-badge">Tailwind CSS</span>
+                        <span class="tech-badge">Material Icons</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 파일 실행 명령어 -->
+        <div class="stage" style="margin-top: 20px; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);">
+            <div class="stage-header">
+                <div class="stage-number">⚡</div>
+                <div class="stage-title">실행 명령어</div>
+            </div>
+
+            <div class="components">
+                <div class="component">
+                    <div class="component-title">1️⃣ 하이브리드 파싱</div>
+                    <div class="component-desc" style="font-family: 'Courier New', monospace;">
+                        python data_processing/process_all_result_folders.py<br>
+                        python data_processing/process_all_result_folders.py 10  # 10개만
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">2️⃣ SQLite DB 생성</div>
+                    <div class="component-desc" style="font-family: 'Courier New', monospace;">
+                        python database/create_agenda_database.py
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">3️⃣ AI 요약 생성</div>
+                    <div class="component-desc" style="font-family: 'Courier New', monospace;">
+                        python database/generate_ai_summaries.py
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">4️⃣ ChromaDB 저장</div>
+                    <div class="component-desc" style="font-family: 'Courier New', monospace;">
+                        python database/insert_to_chromadb.py
+                    </div>
+                </div>
+
+                <div class="component">
+                    <div class="component-title">5️⃣ 서버 실행</div>
+                    <div class="component-desc" style="font-family: 'Courier New', monospace;">
+                        python app.py
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

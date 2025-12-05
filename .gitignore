@@ -1,0 +1,146 @@
+markdown/
+chroma_db/
+old/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Backend
+backend/.env
+backend/chroma_db/
+backend/**/__pycache__/
+backend/*.pyc
+
+# Frontend / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# 파일 (대용량 텍스트 및 데이터)
+result/
+result_txt/
+data_old/
+data/result_txt_gemini/
+data/result_txt_gemini_flash/
+*.jpg
+*.jpeg
+*.json
+
+# 필수 JSON 파일은 제외
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# 임시 파일
+*.tmp
+*.temp
+temp/
+tmp/
+temp_data/
+
+# 테스트
+test_*.py
+*_test.py
+test_attachments/
+test_results/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Credentials and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# Claude Code
+.claude/
+
+# 임시 스크립트
+SESSION_332_*.txt
+selenium_debug.png
+*.md.backup
+GEMINI_FLASH_ISSUE_REPORT_*.md
+HANDOVER.md
+HANDOVER2.md
+HANDOVER3.md
+
+# 스크린샷 및 임시 데이터
+capture.png
+error.png
+data.zip
+*.zip

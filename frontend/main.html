@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SeoulLog - 서울시의회 AI 정보 서비스</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#0052A4",
+            "secondary": "#666666",
+            "accent": "#FFB600",
+            "background-light": "#F5F5F7",
+            "background-dark": "#101622",
+          },
+          fontFamily: {
+            "display": ["Public Sans", "Noto Sans KR", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex h-screen w-full flex-col group/design-root overflow-hidden mx-auto max-w-lg">
+<div class="flex items-center justify-between bg-white dark:bg-gray-900 shadow-sm p-4">
+<div class="text-[#111318] dark:text-white flex size-12 shrink-0 items-center justify-start">
+<span class="material-symbols-outlined text-2xl">menu</span>
+</div>
+<h1 class="text-lg font-bold text-[#111318] dark:text-white leading-tight tracking-[-0.015em] flex-1 text-center">SeoulLog</h1>
+<div class="flex w-12 items-center justify-end">
+<button class="flex items-center justify-center rounded-lg h-12 text-[#111318] dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+<span class="material-symbols-outlined text-2xl">settings</span>
+</button>
+</div>
+</div>
+<main class="flex flex-1 flex-col overflow-y-auto bg-white dark:bg-gray-950">
+<div class="p-6 pt-10 flex flex-col justify-center items-center text-center">
+<h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">무엇이 궁금하신가요?</h2>
+<p class="text-secondary dark:text-gray-400 mb-6">서울시의회 안건을 검색해보세요.</p>
+<div class="w-full relative">
+<input class="w-full h-14 pl-12 pr-6 rounded-full border-2 border-primary focus:ring-2 focus:ring-primary/50 text-base" placeholder="키워드 또는 질문을 입력하세요" type="text"/>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary">search</span>
+</div>
+<div class="flex flex-wrap justify-center gap-2 mt-4">
+<button class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">#청년주택</button>
+<button class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">#교통</button>
+<button class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">#환경</button>
+<button class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">#반려동물</button>
+</div>
+</div>
+<div class="flex-1 bg-background-light dark:bg-background-dark rounded-t-2xl p-4 pt-6 space-y-4">
+<h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 px-2">🔥 주목받는 안건 Top 5</h3>
+<div id="top-agendas-container" class="space-y-3">
+<!-- Top 안건이 동적으로 로드됩니다 -->
+</div>
+</div>
+</main>
+</div>
+<script>
+  // 검색 기능
+  const searchInput = document.querySelector('input[placeholder="키워드 또는 질문을 입력하세요"]');
+
+  searchInput.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      const query = searchInput.value.trim();
+      if (query) {
+        // 검색 페이지로 이동하면서 query 파라미터 전달
+        window.location.href = `/search?query=${encodeURIComponent(query)}`;
+      }
+    }
+  });
+
+  // 태그 버튼 클릭 이벤트
+  const tagButtons = document.querySelectorAll('button[class*="px-3 py-1.5"]');
+  tagButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tag = button.textContent.trim();
+      searchInput.value = tag;
+      window.location.href = `/search?query=${encodeURIComponent(tag)}`;
+    });
+  });
+
+  // 페이지 로드 시 Top 5 안건 데이터 가져오기
+  async function loadTopAgendas() {
+    try {
+      const response = await fetch('/api/top-agendas');
+      const topAgendas = await response.json();
+
+      const container = document.getElementById('top-agendas-container');
+      container.innerHTML = ''; // 기존 내용 제거
+
+      topAgendas.forEach((agenda, index) => {
+        const card = document.createElement('div');
+        card.className = 'w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition';
+        card.dataset.agendaId = agenda.agenda_id; // agenda_id 저장
+
+        card.innerHTML = `
+          <div class="flex items-start justify-start rounded-lg shadow-[0_0_4px_rgba(0,0,0,0.1)] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center justify-center mr-4 text-primary font-bold text-xl w-6">${index + 1}</div>
+            <div class="flex w-full min-w-0 grow flex-col items-stretch justify-center gap-1">
+              <p class="text-[#111318] dark:text-white text-base font-bold leading-tight tracking-[-0.015em]">${agenda.title}</p>
+              <div class="flex flex-col gap-1">
+                <p class="text-secondary dark:text-gray-400 text-sm font-normal leading-normal">📅 ${agenda.meeting_date} | 📍 ${agenda.meeting_title}</p>
+                <p class="text-secondary dark:text-gray-400 text-sm font-normal leading-normal">💬 ${agenda.chunk_count}개 발언 | 👤 ${agenda.main_speaker}</p>
+                <p class="text-secondary dark:text-gray-400 text-sm font-normal leading-normal">📊 ${agenda.status}</p>
+                ${agenda.ai_summary && agenda.ai_summary !== '요약 없음' ? `<p class="text-gray-600 dark:text-gray-400 text-xs mt-1 line-clamp-2">${agenda.ai_summary}</p>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+
+        // 클릭 이벤트: details 페이지로 이동
+        card.addEventListener('click', () => {
+          window.location.href = `/details?agenda_id=${encodeURIComponent(agenda.agenda_id)}`;
+        });
+
+        container.appendChild(card);
+      });
+
+      console.log('Top 5 안건 로드 완료:', topAgendas);
+    } catch (error) {
+      console.error('Top 5 안건 로드 실패:', error);
+      // 에러 시 메시지 표시
+      const container = document.getElementById('top-agendas-container');
+      container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">안건을 불러오는 중 오류가 발생했습니다.</p>';
+    }
+  }
+
+  // 페이지 로드 시 Top 5 안건 로드
+  loadTopAgendas();
+
+  // loadHotIssues();
+</script>
+<!-- Floating Chatbot Button -->
+<a href="/chat" class="fixed bottom-6 right-6 bg-primary text-white rounded-full p-4 shadow-lg hover:bg-primary/90 transition-transform hover:scale-110 z-30">
+  <span class="material-symbols-outlined">
+    question_answer
+  </span>
+</a>
+</body></html>
